@@ -4,13 +4,22 @@ use serde::Deserialize;
 #[derive(Debug, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Condition {
-    label: Option<String>,
-    condition_type: Option<ConditionType>,
-    matcher_group: MatcherGroup,
-    partitions: Vec<Partition>,
+    pub label: Option<String>,
+    pub condition_type: Option<ConditionType>,
+    pub matcher_group: Option<MatcherGroup>,
+    pub partitions: Vec<Partition>,
 }
 
-#[derive(Debug, Deserialize, Clone)]
+impl Condition {
+    pub fn is_empty(&self) -> bool {
+        self.label.is_some()
+            && self.condition_type.is_some()
+            && self.matcher_group.is_some()
+            && !self.partitions.is_empty()
+    }
+}
+
+#[derive(Debug, Deserialize, Clone, PartialEq)]
 #[serde(rename_all = "UPPERCASE")]
 pub enum ConditionType {
     Whitelist,
@@ -42,13 +51,23 @@ pub struct Matcher {
 #[derive(Debug, Deserialize, Clone)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum MatcherType {
-    Whitelist,
     AllKeys,
     InSegment,
+    Whitelist,
     EqualTo,
-    LessThanOrEqualTo,
     GreaterThanOrEqualTo,
+    LessThanOrEqualTo,
     Between,
+    EqualToSet,
+    ContainsAnyOfSet,
+    ContainsAllOfSet,
+    PartOfSet,
+    StartsWith,
+    EndsWith,
+    ContainsString,
+    InSplitTreatment,
+    EqualToBoolean,
+    MatchesString,
 }
 
 #[derive(Debug, Deserialize, Clone)]

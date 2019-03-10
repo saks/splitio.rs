@@ -29,6 +29,28 @@ impl Split {
     }
 
     fn evaluate(&self, _key: &str) -> Treatment {
+        use crate::condition::ConditionType;
+
+        let mut in_rollout = false;
+
+        for condition in &self.conditions {
+            if condition.is_empty() {
+                continue;
+            };
+
+            if !in_rollout && condition.condition_type == Some(ConditionType::Rollout) {
+                if self.traffic_allocation.unwrap() < 100 {
+                    // TODO
+                    // bucket = splitter.bucket(splitter.count_hash(key, split[:trafficAllocationSeed].to_i, legacy_algo))
+                    //
+                    // if bucket > split[:trafficAllocation]
+                    //     return treatment_hash(Models::Label::NOT_IN_SPLIT, split[:defaultTreatment], split[:changeNumber])
+                    // end
+                }
+            };
+            in_rollout = true;
+        }
+
         Treatment::Control
     }
 }
@@ -44,6 +66,7 @@ pub enum Status {
 mod tests {
     use super::*;
     use crate::Client;
+    use std::collections::HashMap;
 
     // Tests that get_treatment returns control treatment if feature is unknown
     #[test]
@@ -54,45 +77,33 @@ mod tests {
         assert_eq!(
             Treatment::Control,
             client
-                .get_treatment(SOME_KEY, UNKNOWN_FEATURE_NAME)
+                .get_treatment(SOME_KEY, UNKNOWN_FEATURE_NAME, None)
                 .unwrap()
         );
     }
 
-    // #[test]
-    // fn deserialize_split() {
-    //     serde_json::from_str::<Split>(JSON_1).unwrap();
-    //     serde_json::from_str::<Split>(JSON_2).unwrap();
-    //     dbg!(in_between_datetime());
-    // }
-
     // Test that get_treatment returns on for the test_between_datetime feature using the user key
     // included for on treatment
-    // #[test]
-    // fn between_datetime_include_on_user() {
-    //     assert_eq!(Treatment::On, )
-    //         self.client.get_treatment(
-    //             self.fake_id_on_key, 'test_between_datetime',
-    //             {self.attribute_name: self.in_between_datetime}))
-    //
-    // }
+    #[test]
+    fn between_datetime_include_on_user() {
+        let c = cache();
+        let client = Client::new(&c);
+        let mut attrs = HashMap::new();
+        attrs.insert(ATTRIBUTE_NAME.into(), in_between_datetime());
 
-    // Test that get_treatment returns off for the test_between_datetime feature using the some key
-    // and no attributes
-    // #[test]
-    // fn between_datetime_some_key_no_attributes() {
-    //     let c = cache();
-    //     let client = Client::new(&c);
-    //     assert_eq!(
-    //         Treatment::Off,
-    //         client
-    //             .get_treatment(SOME_KEY, "test_between_datetime")
-    //             .unwrap()
-    //     );
-    //     // self.assertEqual(
-    //     //     self.off_treatment,
-    //     //     self.client.get_treatment(self.some_key, 'test_between_datetime'))
-    // }
+        assert_eq!(
+            Treatment::On,
+            client
+                .get_treatment(FAKE_ID_ON_KEY, "test_between_datetime", Some(attrs))
+                .unwrap()
+        );
+
+        // self.assertEqual(
+        //     self.on_treatment,
+        //     self.client.get_treatment(
+        //         self.fake_id_on_key, 'test_between_datetime',
+        //         {self.attribute_name: self.in_between_datetime}))
+    }
 
     use crate::storage::CacheAdapter;
     fn cache() -> impl CacheAdapter {
@@ -110,206 +121,12 @@ mod tests {
         serde_json::from_str(&contents).unwrap()
     }
 
-    const JSON_1: &str = r#"{
-          "trafficTypeName": "user",
-          "name": "some_ui_rebranding",
-          "trafficAllocation": 100,
-          "trafficAllocationSeed": -1397198300,
-          "seed": -1634554238,
-          "status": "ACTIVE",
-          "killed": false,
-          "defaultTreatment": "off",
-          "changeNumber": 1544477114146,
-          "algo": 2,
-          "conditions": [
-            {
-              "conditionType": "WHITELIST",
-              "matcherGroup": {
-                "combiner": "AND",
-                "matchers": [
-                  {
-                    "keySelector": null,
-                    "matcherType": "WHITELIST",
-                    "negate": false,
-                    "userDefinedSegmentMatcherData": null,
-                    "whitelistMatcherData": {
-                      "whitelist": [
-                        "123",
-                        "124"
-                      ]
-                    },
-                    "unaryNumericMatcherData": null,
-                    "betweenMatcherData": null,
-                    "booleanMatcherData": null,
-                    "dependencyMatcherData": null,
-                    "stringMatcherData": null
-                  }
-                ]
-              },
-              "partitions": [
-                {
-                  "treatment": "on",
-                  "size": 100
-                }
-              ],
-              "label": "whitelisted"
-            },
-            {
-              "conditionType": "WHITELIST",
-              "matcherGroup": {
-                "combiner": "AND",
-                "matchers": [
-                  {
-                    "keySelector": null,
-                    "matcherType": "WHITELIST",
-                    "negate": false,
-                    "userDefinedSegmentMatcherData": null,
-                    "whitelistMatcherData": {
-                      "whitelist": [
-                        "125",
-                        "126"
-                      ]
-                    },
-                    "unaryNumericMatcherData": null,
-                    "betweenMatcherData": null,
-                    "booleanMatcherData": null,
-                    "dependencyMatcherData": null,
-                    "stringMatcherData": null
-                  }
-                ]
-              },
-              "partitions": [
-                {
-                  "treatment": "off",
-                  "size": 100
-                }
-              ],
-              "label": "whitelisted"
-            },
-            {
-              "conditionType": "ROLLOUT",
-              "matcherGroup": {
-                "combiner": "AND",
-                "matchers": [
-                  {
-                    "keySelector": {
-                      "trafficType": "user",
-                      "attribute": null
-                    },
-                    "matcherType": "ALL_KEYS",
-                    "negate": false,
-                    "userDefinedSegmentMatcherData": null,
-                    "whitelistMatcherData": null,
-                    "unaryNumericMatcherData": null,
-                    "betweenMatcherData": null,
-                    "booleanMatcherData": null,
-                    "dependencyMatcherData": null,
-                    "stringMatcherData": null
-                  }
-                ]
-              },
-              "partitions": [
-                {
-                  "treatment": "on",
-                  "size": 100
-                },
-                {
-                  "treatment": "off",
-                  "size": 0
-                }
-              ],
-              "label": "default rule"
-            }
-          ]
-        }"#;
-    const JSON_2: &str = r#"
-        {
-          "trafficTypeName": "user",
-          "name": "some_email_redesign",
-          "trafficAllocation": 100,
-          "trafficAllocationSeed": 465979707,
-          "seed": 45350536,
-          "status": "ACTIVE",
-          "killed": false,
-          "defaultTreatment": "off",
-          "changeNumber": 1547857786288,
-          "algo": 2,
-          "conditions": [
-            {
-              "conditionType": "WHITELIST",
-              "matcherGroup": {
-                "combiner": "AND",
-                "matchers": [
-                  {
-                    "keySelector": null,
-                    "matcherType": "WHITELIST",
-                    "negate": false,
-                    "userDefinedSegmentMatcherData": null,
-                    "whitelistMatcherData": {
-                      "whitelist": [
-                        "123",
-                        "124",
-                        "125"
-                      ]
-                    },
-                    "unaryNumericMatcherData": null,
-                    "betweenMatcherData": null,
-                    "booleanMatcherData": null,
-                    "dependencyMatcherData": null,
-                    "stringMatcherData": null
-                  }
-                ]
-              },
-              "partitions": [
-                {
-                  "treatment": "on",
-                  "size": 100
-                }
-              ],
-              "label": "whitelisted"
-            },
-            {
-              "conditionType": "ROLLOUT",
-              "matcherGroup": {
-                "combiner": "AND",
-                "matchers": [
-                  {
-                    "keySelector": {
-                      "trafficType": "user",
-                      "attribute": null
-                    },
-                    "matcherType": "ALL_KEYS",
-                    "negate": false,
-                    "userDefinedSegmentMatcherData": null,
-                    "whitelistMatcherData": null,
-                    "unaryNumericMatcherData": null,
-                    "betweenMatcherData": null,
-                    "booleanMatcherData": null,
-                    "dependencyMatcherData": null,
-                    "stringMatcherData": null
-                  }
-                ]
-              },
-              "partitions": [
-                {
-                  "treatment": "on",
-                  "size": 0
-                },
-                {
-                  "treatment": "off",
-                  "size": 100
-                }
-              ],
-              "label": "default rule"
-            }
-          ]
-        }"#;
-
-    fn in_between_datetime() -> u64 {
+    fn in_between_datetime() -> i64 {
         use chrono::prelude::*;
-        chrono::Utc.ymd(2016, 4, 25).and_hms(16, 0, 0).timestamp() as u64
+        chrono::Utc.ymd(2016, 4, 25).and_hms(16, 0, 0).timestamp()
     }
     const ATTRIBUTE_NAME: &str = "some_attribute";
     const SOME_KEY: &str = "some_key";
     const UNKNOWN_FEATURE_NAME: &str = "foobar";
+    const FAKE_ID_ON_KEY: &str = "fake_id_on";
 }
