@@ -1,9 +1,10 @@
 mod client;
 mod condition;
+mod errors;
+mod matcher;
 mod split;
 mod storage;
 mod treatment;
-mod errors;
 
 pub use client::Client;
 pub use treatment::Treatment;

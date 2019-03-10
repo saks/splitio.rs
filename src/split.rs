@@ -28,7 +28,7 @@ impl Split {
         }
     }
 
-    fn evaluate(&self, _key: &str) -> Treatment {
+    fn evaluate(&self, key: &str) -> Treatment {
         use crate::condition::ConditionType;
 
         let mut in_rollout = false;
@@ -49,6 +49,10 @@ impl Split {
                 }
             };
             in_rollout = true;
+
+            if !condition.is_match(key) {
+                continue;
+            }
         }
 
         Treatment::Control
@@ -71,7 +75,7 @@ mod tests {
     // Tests that get_treatment returns control treatment if feature is unknown
     #[test]
     fn unknown_feature_returns_control() {
-        let c = cache();
+        let c = cache("splitChanges");
         let client = Client::new(&c);
 
         assert_eq!(
@@ -86,7 +90,7 @@ mod tests {
     // included for on treatment
     #[test]
     fn between_datetime_include_on_user() {
-        let c = cache();
+        let c = cache("splitChanges");
         let client = Client::new(&c);
         let mut attrs = HashMap::new();
         attrs.insert(ATTRIBUTE_NAME.into(), in_between_datetime());
@@ -97,28 +101,12 @@ mod tests {
                 .get_treatment(FAKE_ID_ON_KEY, "test_between_datetime", Some(attrs))
                 .unwrap()
         );
-
-        // self.assertEqual(
-        //     self.on_treatment,
-        //     self.client.get_treatment(
-        //         self.fake_id_on_key, 'test_between_datetime',
-        //         {self.attribute_name: self.in_between_datetime}))
     }
 
     use crate::storage::CacheAdapter;
-    fn cache() -> impl CacheAdapter {
-        crate::storage::FileCacheAdapter::from_path("test_data/splitChanges.json").unwrap()
-    }
-
-    fn split() -> Split {
-        use std::fs::File;
-        use std::io::Read as _;
-
-        let mut file = File::open("foo.txt").unwrap();
-        let mut contents = String::new();
-        file.read_to_string(&mut contents).unwrap();
-
-        serde_json::from_str(&contents).unwrap()
+    fn cache(name: &str) -> impl CacheAdapter {
+        let path = format!("test_data/{}.json", name);
+        crate::storage::FileCacheAdapter::from_path(&path).unwrap()
     }
 
     fn in_between_datetime() -> i64 {

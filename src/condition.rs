@@ -1,3 +1,4 @@
+use crate::matcher::Matcher;
 use crate::Treatment;
 use serde::Deserialize;
 
@@ -17,6 +18,26 @@ impl Condition {
             && self.matcher_group.is_some()
             && !self.partitions.is_empty()
     }
+
+    // TODO
+    pub fn is_match(&self, key: &str) -> bool {
+        let matcher_group = match &self.matcher_group {
+            Some(matcher_group) => matcher_group,
+            None => return false,
+        };
+
+        if matcher_group.matchers.is_empty() {
+            return false;
+        };
+
+        match &matcher_group.combiner {
+            Some(combiner) => match combiner {
+                Combiner::And => matcher_group.matchers.iter().all(|m| m.is_match(key)),
+                _ => return false,
+            },
+            None => return false,
+        }
+    }
 }
 
 #[derive(Debug, Deserialize, Clone, PartialEq)]
@@ -29,7 +50,7 @@ pub enum ConditionType {
 #[derive(Debug, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct MatcherGroup {
-    combiner: Combiner,
+    combiner: Option<Combiner>,
     matchers: Vec<Matcher>,
 }
 
@@ -38,41 +59,6 @@ pub struct MatcherGroup {
 pub enum Combiner {
     And,
     Or,
-}
-
-#[derive(Debug, Deserialize, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct Matcher {
-    matcher_type: MatcherType,
-    negate: bool,
-    whitelist_matcher_data: Option<WhitelistMatcherData>,
-}
-
-#[derive(Debug, Deserialize, Clone)]
-#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
-pub enum MatcherType {
-    AllKeys,
-    InSegment,
-    Whitelist,
-    EqualTo,
-    GreaterThanOrEqualTo,
-    LessThanOrEqualTo,
-    Between,
-    EqualToSet,
-    ContainsAnyOfSet,
-    ContainsAllOfSet,
-    PartOfSet,
-    StartsWith,
-    EndsWith,
-    ContainsString,
-    InSplitTreatment,
-    EqualToBoolean,
-    MatchesString,
-}
-
-#[derive(Debug, Deserialize, Clone)]
-pub struct WhitelistMatcherData {
-    whitelist: Vec<String>,
 }
 
 #[derive(Debug, Deserialize, Clone)]
