@@ -391,7 +391,7 @@
                     },
                     "partitions": [
                         {
-                            "treatment": "some_treatment",
+                            "treatment": "on",
                             "size": 100
                         }
                     ]
@@ -419,15 +419,11 @@
                     "partitions": [
                         {
                             "treatment": "on",
-                            "size": 25
+                            "size": 75
                         },
                         {
                             "treatment": "off",
                             "size": 25
-                        },
-                        {
-                            "treatment": "some_treatment",
-                            "size": 50
                         }
                     ]
                 }

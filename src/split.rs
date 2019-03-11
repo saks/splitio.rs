@@ -1,3 +1,4 @@
+use crate::splitter;
 use crate::{condition::Condition, Treatment};
 use serde::Deserialize;
 
@@ -8,9 +9,10 @@ pub struct Split {
     default_treatment: Treatment,
     killed: bool,
     traffic_allocation: Option<u8>,
+    seed: i64,
     status: Status,
     conditions: Vec<Condition>,
-    change_number: u64,
+    change_number: Option<u64>,
 }
 
 impl Split {
@@ -22,7 +24,7 @@ impl Split {
         if self.is_garbage() {
             Treatment::Control
         } else if self.killed {
-            self.default_treatment.clone()
+            self.default_treatment
         } else {
             self.evaluate(key)
         }
@@ -53,9 +55,11 @@ impl Split {
             if !condition.is_match(key) {
                 continue;
             }
+
+            return splitter::get_treatment(key, self.seed, &condition);
         }
 
-        Treatment::Control
+        self.default_treatment
     }
 }
 
@@ -81,27 +85,61 @@ mod tests {
         assert_eq!(
             Treatment::Control,
             client
-                .get_treatment(SOME_KEY, UNKNOWN_FEATURE_NAME, None)
+                .get_treatment(SOME_KEY, UNKNOWN_FEATURE_NAME)
                 .unwrap()
         );
+    }
+
+    //----- START TESTS FROM RUBY CLIENT
+
+    macro_rules! assert_treatment_is_on {
+        ($file_name:literal, $id:literal, $feature:literal) => {
+            let c = cache($file_name);
+            let client = Client::new(&c);
+
+            assert_eq!(Treatment::On, client.get_treatment($id, $feature).unwrap());
+        };
+    }
+
+    macro_rules! assert_treatment_is_off {
+        ($file_name:literal, $id:literal, $feature:literal) => {
+            let c = cache($file_name);
+            let client = Client::new(&c);
+
+            assert_eq!(Treatment::Off, client.get_treatment($id, $feature).unwrap());
+        };
+    }
+
+    // Validates the feature is on for all ids
+    #[test]
+    fn all_keys_matcher_feature_is_on_for_all_ids() {
+        assert_treatment_is_on!("all_keys_matcher", "fake_user_id_1", "test_feature");
+        assert_treatment_is_on!("all_keys_matcher", "fake_user_id_2", "test_feature");
+    }
+
+    #[test]
+    fn whitelist_matcher() {
+        assert_treatment_is_on!("whitelist_matcher", "fake_user_id_1", "test_whitelist");
+        assert_treatment_is_off!("whitelist_matcher", "fake_user_id_2", "test_whitelist");
     }
 
     // Test that get_treatment returns on for the test_between_datetime feature using the user key
     // included for on treatment
-    #[test]
-    fn between_datetime_include_on_user() {
-        let c = cache("splitChanges");
-        let client = Client::new(&c);
-        let mut attrs = HashMap::new();
-        attrs.insert(ATTRIBUTE_NAME.into(), in_between_datetime());
-
-        assert_eq!(
-            Treatment::On,
-            client
-                .get_treatment(FAKE_ID_ON_KEY, "test_between_datetime", Some(attrs))
-                .unwrap()
-        );
-    }
+    // TODO
+    // #[test]
+    // fn between_datetime_include_on_user() {
+    //     let c = cache("splitChanges");
+    //     let client = Client::new(&c);
+    //     let mut attrs = HashMap::new();
+    //     attrs.insert(ATTRIBUTE_NAME.into(), in_between_datetime());
+    //
+    //     assert_eq!(
+    //         Treatment::On,
+    //         client
+    //             .get_treatment(FAKE_ID_ON_KEY, "test_between_datetime")
+    //             .unwrap()
+    //     );
+    // }
 
     use crate::storage::CacheAdapter;
     fn cache(name: &str) -> impl CacheAdapter {

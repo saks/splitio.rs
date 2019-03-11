@@ -3,7 +3,8 @@ mod condition;
 mod errors;
 mod matcher;
 mod split;
-mod storage;
+mod splitter;
+pub mod storage;
 mod treatment;
 
 pub use client::Client;

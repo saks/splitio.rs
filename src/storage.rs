@@ -36,14 +36,16 @@ impl CacheAdapter for FileCacheAdapter {
     }
 }
 
+use std::sync::Mutex;
 pub struct RedisCacheAdapter {
-    connection: redis::Connection,
+    connection: Mutex<redis::Connection>,
 }
 
 impl RedisCacheAdapter {
-    fn from_url(url: &str) -> SplitResult<Self> {
+    pub fn from_url(url: &str) -> SplitResult<Self> {
         let client = redis::Client::open(url)?;
         let connection = client.get_connection()?;
+        let connection = Mutex::new(connection);
 
         Ok(Self { connection })
     }
@@ -52,7 +54,8 @@ impl RedisCacheAdapter {
 impl CacheAdapter for RedisCacheAdapter {
     fn get(&self, split_name: &str) -> SplitResult<Option<Split>> {
         let redis_key = build_split_key(split_name);
-        let value: Option<String> = self.connection.get(redis_key)?;
+        let connection = self.connection.lock()?;
+        let value: Option<String> = connection.get(redis_key)?;
 
         match value {
             Some(json) => {

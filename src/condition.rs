@@ -13,10 +13,10 @@ pub struct Condition {
 
 impl Condition {
     pub fn is_empty(&self) -> bool {
-        self.label.is_some()
-            && self.condition_type.is_some()
-            && self.matcher_group.is_some()
-            && !self.partitions.is_empty()
+        self.label.is_none()
+            && self.condition_type.is_none()
+            && self.matcher_group.is_none()
+            && self.partitions.is_empty()
     }
 
     // TODO
@@ -63,6 +63,12 @@ pub enum Combiner {
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct Partition {
-    treatment: String,
-    size: u8,
+    pub treatment: Treatment,
+    pub size: u32,
+}
+
+impl Partition {
+    pub fn is_hundred_percent(&self) -> bool {
+        self.size == 100
+    }
 }
