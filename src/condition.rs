@@ -72,3 +72,32 @@ impl Partition {
         self.size == 100
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn is_empty() {
+        let c = Condition {
+            label: None,
+            condition_type: None,
+            matcher_group: None,
+            partitions: vec![],
+        };
+
+        assert!(c.is_empty());
+    }
+
+    #[test]
+    fn is_not_empty() {
+        let c = Condition {
+            label: Some("foo".into()),
+            condition_type: None,
+            matcher_group: None,
+            partitions: vec![],
+        };
+
+        assert!(!c.is_empty());
+    }
+}

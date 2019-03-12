@@ -1,5 +1,5 @@
 [package]
-name = "split-io-rs"
+name = "splitio"
 version = "0.1.0"
 authors = ["aliaksandr.rahalevich <saksmlz@gmail.com>"]
 edition = "2018"
@@ -12,3 +12,8 @@ chrono = "0.4"
 failure = "0.1"
 failure_derive = "0.1"
 murmur3 = "0.4"
+lazy_static = "1.3"
+log = "0.4"
+
+[dev-dependencies]
+simple_logger = "1.0"

@@ -141,10 +141,10 @@ mod tests {
     //     );
     // }
 
-    use crate::storage::CacheAdapter;
-    fn cache(name: &str) -> impl CacheAdapter {
+    use crate::cache::Cache;
+    fn cache(name: &str) -> impl Cache {
         let path = format!("test_data/{}.json", name);
-        crate::storage::FileCacheAdapter::from_path(&path).unwrap()
+        crate::cache::File::from_path(&path).unwrap()
     }
 
     fn in_between_datetime() -> i64 {

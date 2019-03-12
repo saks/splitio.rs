@@ -1,30 +1,26 @@
 use super::Treatment;
+use crate::cache::Cache;
 use crate::errors::SplitResult;
-use crate::storage::CacheAdapter;
 
-// pub struct Client<'a> {
-//     cache: &'a CacheAdapter,
-// }
-pub struct Client;
+pub struct Client<'a, T: Cache> {
+    cache: Box<&'a T>,
+}
 
 // pub type Attrs = std::collections::HashMap<String, i64>;
 
-// impl<'a> Client<'a> {
-impl Client {
-    pub fn new() -> Self {
-        Self {}
+impl<'a, T: Cache> Client<'a, T> {
+    pub fn new(cache: &'a T) -> Self {
+        Self {
+            cache: Box::new(cache),
+        }
     }
-    // pub fn new(cache: &'a impl CacheAdapter) -> Self {
-    //     Self { cache }
-    // }
 
     pub fn get_treatment(
         &self,
         key: &str,
-        split_name: &str,
-        cache: &impl CacheAdapter, // attrs: Option<Attrs>
+        split_name: &str, // attrs: Option<Attrs>
     ) -> SplitResult<Treatment> {
-        let split = match cache.get(split_name)? {
+        let split = match self.cache.get(split_name)? {
             Some(s) => s,
             None => {
                 return Ok(Treatment::Control);
